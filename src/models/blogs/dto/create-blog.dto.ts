@@ -26,7 +26,7 @@ export class CreateBlogDto {
             @ApiProperty({ description: 'This is tags blog', example: 'JavaScript' })
             @IsNotEmpty()
             @IsArray()
-            tags: string[];
+            tags?: string[];
 
             @ApiProperty({ description: 'This is summary blog', example: 'sfsdfsdf' })
             @IsNotEmpty()

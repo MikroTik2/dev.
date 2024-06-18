@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { ConfigService } from "@nestjs/config";
 import { Model } from 'mongoose';
 
 import { Blog, BlogDocument } from "@/models/blogs/schemas/blog.schema";
@@ -8,10 +7,10 @@ import { User, UserDocument } from '@/models/users/schemas/user.schema';
 
 import { CreateBlogDto } from "@/models/blogs/dto/create-blog.dto";
 import { UpdateBlogDto } from "@/models/blogs/dto/update-blog.dto";
-import { BlogsQuery } from '@/models/blogs/dto/blog-query.dto';
 
 import { CloudinaryService } from "@/providers/cloudinary/cloudinary.service";
-import { UsersService } from "@/models/users/users.service";
+import { Tag, TagDocument } from "@/models/tags/schemas/tag.schema";
+import { IPagination } from "@/common/interfaces/pagination.interface";
 
 @Injectable()
 export class BlogsService {
@@ -19,8 +18,8 @@ export class BlogsService {
             constructor(
                         @InjectModel(Blog.name) private readonly blogModel: Model<BlogDocument>,
                         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+                        @InjectModel(Tag.name) private readonly tagModel: Model<TagDocument>,
                         private readonly cloudinaryService: CloudinaryService,
-                        private readonly usersService: UsersService,
             ) {};
 
             async create(id: string, data: CreateBlogDto): Promise<Blog> {
@@ -31,14 +30,28 @@ export class BlogsService {
                                     author: id,
                         });
 
+                        for (const tag of data.tags) {
+                            await this.tagModel.findOneAndUpdate({ title: tag }, {
+                                $inc: { posts: 1 },
+                            }, { new: true })
+                        };
+
                         return blog;
             };
 
-            async find(): Promise<Blog[]> {
-                        const blogs = await this.blogModel.find().lean();
-                        if (!blogs) throw new NotFoundException('Blogs not found');
+            async find(pagination: IPagination): Promise<any> {
+                const { skip, limit, sort } = pagination;
 
-                        return blogs;
+                let query = this.blogModel.find().lean().skip(skip).limit(limit);
+        
+                if (sort && sort.length > 0) {
+                    sort.forEach((s) => {
+                        const sort = s.by === 'ASC' ? 1 : -1;
+                        query = query.sort({ [s.field]: sort });
+                    });
+                }
+            
+                return query.exec();
             };
 
             async findOne(table: string, value: string): Promise<Blog> {

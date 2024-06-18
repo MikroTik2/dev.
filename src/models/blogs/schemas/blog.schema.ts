@@ -19,7 +19,7 @@ export class Blog {
      categories: string;
 
      @Prop({ required: true })
-     tags: string[];
+     tags?: string[];
 
      @Prop({ required: true })
      summary: string;

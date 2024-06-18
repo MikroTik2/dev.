@@ -9,6 +9,8 @@ import { CreateTagDto } from '@/models/tags/dto/create-tag.dto';
 import { UpdateTagDto } from '@/models/tags/dto/update-tag.dto';
 import { User, UserDocument } from '@/models/users/schemas/user.schema';
 
+import { IPagination } from "@/common/interfaces/pagination.interface";
+
 @Injectable()
 export class TagsService {
      constructor(
@@ -34,11 +36,19 @@ export class TagsService {
           return tag;
      };
 
-     async find(): Promise<Tag[]> {
-          const tags = await this.tagModel.find().lean();
-          if (!tags) throw new NotFoundException('Tags not found');
+     async find(pagination: IPagination): Promise<Tag[]> {
+          const { skip, limit, sort } = pagination;
 
-          return tags;
+          let query = this.tagModel.find().lean().skip(skip).limit(limit);
+  
+          if (sort && sort.length > 0) {
+               sort.forEach((s) => {
+                    const sort = s.by === 'ASC' ? 1 : -1;
+                    query = query.sort({ [s.field]: sort });
+               });
+          };
+      
+          return query.exec();
      };
 
      async findOne(table: string, value: string): Promise<Tag> {

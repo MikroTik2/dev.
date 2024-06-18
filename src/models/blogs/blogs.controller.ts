@@ -12,6 +12,9 @@ import { UpdateBlogDto } from '@/models/blogs/dto/update-blog.dto';
 
 import { ErrorsInterceptor } from '@/common/interceptors/errors.interceptor';
 
+import { Pagination } from '@/common/decorators/pagination.decorator';
+import { IPagination } from '@/common/interfaces/pagination.interface';
+
 @UseInterceptors(ErrorsInterceptor)
 @ApiTags('Blogs')
 @Controller('blogs')
@@ -33,8 +36,8 @@ export class BlogsController {
             @HttpCode(HttpStatus.OK)
             @ApiOperation({ summary: 'Get all blogs' })
             @ApiResponse({ status: HttpStatus.OK, description: 'Return all blogs', type: [Blog] })
-            async find(): Promise<Blog[]> {
-                        return await this.blogsService.find();
+            async find(@Pagination() pagination: IPagination): Promise<Blog[]> {
+                        return await this.blogsService.find(pagination);
             };
 
             @Get('single/:value')

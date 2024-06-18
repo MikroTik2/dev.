@@ -9,6 +9,8 @@ import { TagsService } from '@/models/tags/tags.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '@/common/interfaces/authenticated-request.interface';
 
+import { Pagination } from '@/common/decorators/pagination.decorator';
+import { IPagination } from '@/common/interfaces/pagination.interface';
 
 @ApiTags('Tags')
 @Controller('tags')
@@ -28,8 +30,8 @@ export class TagsController {
      @HttpCode(HttpStatus.OK)
      @ApiOperation({ summary: 'Get all tags' })
      @ApiResponse({ status: HttpStatus.OK, description: 'Return all tags', type: [Tag] })
-     async find(): Promise<Tag[]> {
-          return await this.tagsService.find();
+     async find(@Pagination() pagination: IPagination): Promise<Tag[]> {
+          return await this.tagsService.find(pagination);
      };
 
      @Get('single/:value')
