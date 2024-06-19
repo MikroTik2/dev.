@@ -1,35 +1,36 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import { Blog, BlogDocument } from "@/models/blogs/schemas/blog.schema";
+import { Media, MediaDocument } from '@/models/media/schemas/media.schema';
 import { User, UserDocument } from '@/models/users/schemas/user.schema';
 import { Tag, TagDocument } from "@/models/tags/schemas/tag.schema";
 
-import { CreateBlogDto } from "@/models/blogs/dto/create-blog.dto";
-import { UpdateBlogDto } from "@/models/blogs/dto/update-blog.dto";
+import { CreateMediaDto } from '@/models/media/dto/create-media.dto';
+import { UpdateMediaDto } from '@/models/media/dto/update-media.dto';
 
-import { CloudinaryService } from "@/providers/cloudinary/cloudinary.service";
+import { CloudinaryService } from '@/providers/cloudinary/cloudinary.service';
 import { IPagination } from "@/common/interfaces/pagination.interface";
 
 @Injectable()
-export class BlogsService {
+export class MediaService {
             
             constructor(
-                        @InjectModel(Blog.name) private readonly blogModel: Model<BlogDocument>,
+                        @InjectModel(Media.name) private readonly mediaModel: Model<MediaDocument>,
                         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
                         @InjectModel(Tag.name) private readonly tagModel: Model<TagDocument>,
                         private readonly cloudinaryService: CloudinaryService,
             ) {};
 
-            async create(id: string, data: CreateBlogDto): Promise<Blog> {
+            async create(id: string, data: CreateMediaDto): Promise<Media> {
 
-                        const blog = await this.blogModel.create({ 
-                                    ...data,
-                                    images: await this.cloudinaryService.uploadBlogImage(data?.images),
+                        const media = await this.mediaModel.create({ 
+                                    ...data, 
                                     author: id,
+                                    video: await this.cloudinaryService.uploadVideo(data.video),
                         });
 
+                        
                         for (const tag of data.tags) {
                             const find = await this.tagModel.findOne({ title: tag });
 
@@ -43,54 +44,55 @@ export class BlogsService {
                             };
                         };
 
-                        return blog;
+                        return media;
             };
 
-            async find(pagination: IPagination): Promise<any> {
-                const { skip, limit, sort } = pagination;
-
-                let query = this.blogModel.find().lean().skip(skip).limit(limit);
+            async find(pagination: IPagination): Promise<Media[]> {
+                        const { skip, limit, sort } = pagination;
         
-                if (sort && sort.length > 0) {
-                    sort.forEach((s) => {
-                        const sort = s.by === 'ASC' ? 1 : -1;
-                        query = query.sort({ [s.field]: sort });
-                    });
-                }
-            
-                return query.exec();
+                        let query = this.mediaModel.find().lean().skip(skip).limit(limit);
+                
+                        if (sort && sort.length > 0) {
+                                    sort.forEach((s) => {
+                                                const sort = s.by === 'ASC' ? 1 : -1;
+                                                query = query.sort({ [s.field]: sort });
+                                    });
+                        };
+                    
+                        return query.exec();
             };
 
-            async findOne(table: string, value: string): Promise<Blog> {
-                        const blog = await this.blogModel.findOne({ [table]: value }).lean();
+            async findOne(table: string, value: string): Promise<Media> {
+                        const blog = await this.mediaModel.findOne({ [table]: value }).lean();
                         if (!blog) throw new NotFoundException(`User with value: ${value} not found`);
               
                         return blog;     
             };
 
-            async findById(id: string): Promise<Blog> {
-                        const blog = await this.blogModel.findById(id).lean();
+            async findById(id: string): Promise<Media> {
+                        const blog = await this.mediaModel.findById(id).lean();
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
 
                         return blog;
             };
 
-            async findBlogsByTag(tag: string): Promise<Blog[]> {
-                        const blog = await this.blogModel.find({ tags: tag }).lean();
+            async findBlogsByTag(tag: string): Promise<Media[]> {
+                        const blog = await this.mediaModel.find({ tags
+                                    : tag }).lean();
                         if (!blog) throw new NotFoundException(`Blog tag: ${tag} not found`);
 
                         return blog;
             };
 
-            async findBlogsByCategory(category: string): Promise<Blog[]> {
-                        const blog = await this.blogModel.find({ categories: category }).lean();
+            async findBlogsByCategory(category: string): Promise<Media[]> {
+                        const blog = await this.mediaModel.find({ categories: category }).lean();
                         if (!blog) throw new NotFoundException(`Blog category: ${category} not found`);
 
                         return blog;
             };
 
-            async searchBlogs(query: string): Promise<Blog[]> {
-                        const blogs = await this.blogModel.find({
+            async searchBlogs(query: string): Promise<Media[]> {
+                        const blogs = await this.mediaModel.find({
                                     $or: [
                                                 { title:      { $regex: query, $options: 'i' } },
                                                 { slug:       { $regex: query, $options: 'i' } },
@@ -100,14 +102,14 @@ export class BlogsService {
                         });
 
                         if (!blogs || blogs.length === 0) {
-                                    throw new NotFoundException('Blogs not found');
+                                    throw new NotFoundException('Media not found');
                         };
 
                         return blogs;
             };
 
-            async likes(user_id: string, blog_id: string): Promise<Blog> {
-                        const blog = await this.blogModel.findById(blog_id);
+            async likes(user_id: string, blog_id: string): Promise<Media> {
+                        const blog = await this.mediaModel.findById(blog_id);
                         if (!blog) throw new NotFoundException(`Blog id: ${blog_id} not found`);
                     
                         const alreadyLiked = blog.likes?.find(
@@ -127,12 +129,12 @@ export class BlogsService {
                                     };
                         }
                     
-                        const updatedBlog = await this.blogModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
+                        const updatedBlog = await this.mediaModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
                         return updatedBlog;
             }; 
 
-            async dislikes(user_id: string, blog_id: string): Promise<Blog> {
-                        const blog = await this.blogModel.findById(blog_id);
+            async dislikes(user_id: string, blog_id: string): Promise<Media> {
+                        const blog = await this.mediaModel.findById(blog_id);
                         if (!blog) throw new NotFoundException(`Blog id: ${blog_id} not found`);
                     
                         const alreadyDisliked = blog.dislikes?.find(
@@ -152,7 +154,7 @@ export class BlogsService {
                                     };
                         };
                     
-                        const updatedBlog = await this.blogModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
+                        const updatedBlog = await this.mediaModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
                         return updatedBlog;
             };
  
@@ -180,22 +182,24 @@ export class BlogsService {
                         return updatedBlog;
             };
 
-            async update(id: string, data: UpdateBlogDto): Promise<Blog> {
-                        const blog = await this.blogModel.findByIdAndUpdate(id, { 
+            async update(id: string, data: UpdateMediaDto): Promise<Media> {
+                        const blog = await this.mediaModel.findByIdAndUpdate(id, { 
                                     ...data, 
-                                    images: this.cloudinaryService.updateBlogImage(data.images.public_id, data.images.url),
                         }, { new: true }).lean();
+
+                        await this.cloudinaryService.updateVideo(blog.video.public_id, blog.video.secure_url);
+
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
 
                         return blog;
             };
 
-            async delete(id: string): Promise<Blog> {
-                        const blog = await this.blogModel.findByIdAndDelete(id).lean();
+            async delete(id: string): Promise<Media> {
+                        const blog = await this.mediaModel.findByIdAndDelete(id).lean();
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
 
-                        this.cloudinaryService.deleteBlogImage(blog.images.public_id)
+                        this.cloudinaryService.deleteVideo(blog.video.public_id);
 
                         return blog;
             };
-}; 
+};

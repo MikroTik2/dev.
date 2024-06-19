@@ -12,7 +12,7 @@ import { TokenInterceptor } from '@/common/interceptors/token.interceptor';
 import { GoogleOauthGuard } from '@/common/guards/google-oauth.guard';
 import { GithubOauthGuard } from '@/common/guards/github-oauth.guard';
 
-@ApiTags('auth')
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
 

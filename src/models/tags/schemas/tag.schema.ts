@@ -11,7 +11,7 @@ export class Tag {
      title: string;
 
      @ApiProperty({ description: 'The description of the tag', example: 'Tags related to technology and gadgets' })
-     @Prop({ required: true })
+     @Prop({ required: false })
      description: string;
 
      @ApiProperty({ description: 'The image URL associated with the tag', example: 'http://example.com/image.png' })
@@ -22,11 +22,11 @@ export class Tag {
      };
 
      @ApiProperty({ description: 'The color code for the tag', example: '#ff5733' })
-     @Prop({ required: true, default: '#222222' })
+     @Prop({ required: false, default: '#222222' })
      color: string;
-
+     
      @ApiProperty({ description: 'The number of posts associated with this tag', example: 42 })
-     @Prop({ required: true, default: 0 })
+     @Prop({ required: false, default: 0 })
      posts: number;
 };
 

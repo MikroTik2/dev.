@@ -11,6 +11,7 @@ import { AuthModule } from '@/authentication/auth.module';
 import { TagsModule } from '@/models/tags/tags.module';
 import { MailsModule } from '@/providers/mails/mails.module';
 import { BlogsModule } from '@/models/blogs/blogs.module';
+import { MediaModule } from '@/models/media/media.module';
 
 import { ErrorsInterceptor } from '@/common/interceptors/errors.interceptor';
 
@@ -31,6 +32,7 @@ import configs from '@/config/index';
         }),
 
         BlogsModule,
+        MediaModule,
         UsersModule,
         AuthModule,
         TagsModule,

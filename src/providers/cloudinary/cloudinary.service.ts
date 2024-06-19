@@ -20,6 +20,13 @@ export class CloudinaryService {
           folder: 'blogs',
           crop: 'fill',
      };
+
+     private readonly options_video = {
+          folder: 'media',
+          quality: "auto", 
+          fetch_format: "mp4",
+          resource_type: 'video',
+     };
      
      private async uploadFile(file: any, options: any): Promise<UploadApiResponse | UploadApiErrorResponse> {
           return await cloudinary.uploader.upload(file, options);
@@ -54,6 +61,20 @@ export class CloudinaryService {
      };
   
      async deleteBlogImage(id: string): Promise<UploadApiResponse | UploadApiErrorResponse> {
+          return this.deleteFile(id);
+     };
+
+     async uploadVideo(video: any): Promise<any> {
+          const request = await this.uploadFile(video, this.options_video);
+          return { public_id: request.public_id, secure_url: request.secure_url }
+     };
+
+     async updateVideo(id: string, video: any): Promise<UploadApiResponse | UploadApiErrorResponse> {
+          await this.deleteFile(id);
+          return this.uploadFile(video, this.options_video);
+     };
+
+     async deleteVideo(id: string): Promise<UploadApiResponse | UploadApiErrorResponse> {
           return this.deleteFile(id);
      };
 };

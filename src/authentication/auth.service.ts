@@ -72,7 +72,7 @@ export class AuthService {
                     confirm_token: confirm_token,
                });
 
-               await this.mailsService.onSendForgotPassword(data.email, confirm_token);
+               await this.mailsService.onSendVerification(data.username, data.email, confirm_token);
 
                const token = this.generateToken(user);
        
