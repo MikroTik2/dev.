@@ -8,14 +8,20 @@ import { User, UserSchema } from '@/models/users/schemas/user.schema';
 import { Tag, TagSchema } from '@/models/tags/schemas/tag.schema';
 
 import { CloudinaryModule } from '@/providers/cloudinary/cloudinary.module';
+import { CacheManagerModule } from '@/providers/cache/redis/cache.module';
 import { JwtService } from '@nestjs/jwt';
 
 @Module({  
-            imports: [MongooseModule.forFeature([
-                        { name: Media.name, schema: MediaSchema },
-                        { name: User.name, schema: UserSchema },
-                        { name: Tag.name, schema: TagSchema },
-            ]), CloudinaryModule],
+            imports: [
+                        MongooseModule.forFeature([
+                                    { name: Media.name, schema: MediaSchema },
+                                    { name: User.name, schema: UserSchema },
+                                    { name: Tag.name, schema: TagSchema },
+                        ]), 
+                        
+                        CloudinaryModule,
+                        CacheManagerModule,
+            ],
 
             controllers: [MediaController], 
             providers: [MediaService, JwtService],  

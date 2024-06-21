@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateTagDto {
      @ApiProperty({ description: 'The title of the tag', example: 'Technology' })
      @IsNotEmpty()
+     @IsOptional()
      @IsString()
      title: string;
 

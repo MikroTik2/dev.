@@ -11,6 +11,7 @@ import { UpdateMediaDto } from '@/models/media/dto/update-media.dto';
 
 import { CloudinaryService } from '@/providers/cloudinary/cloudinary.service';
 import { IPagination } from "@/common/interfaces/pagination.interface";
+import { CacheService } from '@/providers/cache/redis/cache.service';
 
 @Injectable()
 export class MediaService {
@@ -20,7 +21,11 @@ export class MediaService {
                         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
                         @InjectModel(Tag.name) private readonly tagModel: Model<TagDocument>,
                         private readonly cloudinaryService: CloudinaryService,
-            ) {};
+                        private readonly cacheService: CacheService,
+        ) {};
+
+            private media;
+            private media_search;
 
             async create(id: string, data: CreateMediaDto): Promise<Media> {
 
@@ -58,40 +63,74 @@ export class MediaService {
                                                 query = query.sort({ [s.field]: sort });
                                     });
                         };
+
+                        this.media = `media_${JSON.stringify(pagination)}`;
+                        const cachedResult = await this.cacheService.get(this.media);
                     
-                        return query.exec();
+                        if (cachedResult) {
+                            return cachedResult;
+                        } else {
+                            const result = await query.exec();
+                            await this.cacheService.set(this.media, result);
+                            return result;
+                        };
             };
 
             async findOne(table: string, value: string): Promise<Media> {
+
+                        const cachedData = await this.cacheService.get(value.toString());
+                        if (cachedData) return cachedData;
+
                         const blog = await this.mediaModel.findOne({ [table]: value }).lean();
                         if (!blog) throw new NotFoundException(`User with value: ${value} not found`);
               
+                        await this.cacheService.set(value.toString(), blog);  
+
                         return blog;     
             };
 
             async findById(id: string): Promise<Media> {
+                        const cachedData = await this.cacheService.get(id.toString());
+                        if (cachedData) return cachedData;
+
                         const blog = await this.mediaModel.findById(id).lean();
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
+
+                        await this.cacheService.set(id.toString(), blog);  
 
                         return blog;
             };
 
             async findBlogsByTag(tag: string): Promise<Media[]> {
-                        const blog = await this.mediaModel.find({ tags
-                                    : tag }).lean();
-                        if (!blog) throw new NotFoundException(`Blog tag: ${tag} not found`);
+                const cachedData = await this.cacheService.get(tag.toString());
+                if (cachedData) return cachedData;
 
-                        return blog;
+                const blog = await this.mediaModel.find({ tags: tag }).lean();
+                if (!blog) throw new NotFoundException(`Blog tag: ${tag} not found`);
+
+                await this.cacheService.set(tag.toString(), blog);
+
+                return blog;
             };
 
             async findBlogsByCategory(category: string): Promise<Media[]> {
+                        const cachedData = await this.cacheService.get(category.toString());
+                        if (cachedData) return cachedData;
+                        
                         const blog = await this.mediaModel.find({ categories: category }).lean();
                         if (!blog) throw new NotFoundException(`Blog category: ${category} not found`);
+
+                        await this.cacheService.set(category.toString(), blog);
 
                         return blog;
             };
 
             async searchBlogs(query: string): Promise<Media[]> {
+
+                        this.media_search = `media_search_${query}`;
+                        const cachedData = await this.cacheService.get(this.media_search.toString());
+                        if (cachedData) return cachedData;
+
                         const blogs = await this.mediaModel.find({
                                     $or: [
                                                 { title:      { $regex: query, $options: 'i' } },
@@ -104,6 +143,8 @@ export class MediaService {
                         if (!blogs || blogs.length === 0) {
                                     throw new NotFoundException('Media not found');
                         };
+
+                        await this.cacheService.set(this.media_search.toString(), blogs);  
 
                         return blogs;
             };
@@ -127,7 +168,9 @@ export class MediaService {
                                                 $push: { likes: user_id },
                                                 $pull: { dislikes: user_id },
                                     };
-                        }
+                        };
+
+                        await this.cacheService.reset();
                     
                         const updatedBlog = await this.mediaModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
                         return updatedBlog;
@@ -153,6 +196,8 @@ export class MediaService {
                                                 $pull: { likes: user_id },
                                     };
                         };
+
+                        await this.cacheService.reset();
                     
                         const updatedBlog = await this.mediaModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
                         return updatedBlog;
@@ -177,6 +222,8 @@ export class MediaService {
                                                 $push: { save_blogs: blog_id },
                                     };
                         };
+
+                        await this.cacheService.reset();
                         
                         const updatedBlog = await this.userModel.findByIdAndUpdate(user._id, updateOperations, {  new: true});
                         return updatedBlog;
@@ -190,6 +237,7 @@ export class MediaService {
                         await this.cloudinaryService.updateVideo(blog.video.public_id, blog.video.secure_url);
 
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
+                        await this.cacheService.reset();
 
                         return blog;
             };
@@ -199,6 +247,7 @@ export class MediaService {
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
 
                         this.cloudinaryService.deleteVideo(blog.video.public_id);
+                        await this.cacheService.reset();
 
                         return blog;
             };

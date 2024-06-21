@@ -7,7 +7,7 @@ export type TagDocument = Tag & Document;
 @Schema({ timestamps: true, suppressReservedKeysWarning: true })
 export class Tag {
      @ApiProperty({ description: 'The title of the tag', example: 'Technology' })
-     @Prop({ required: true, unique: true })
+     @Prop({ required: true })
      title: string;
 
      @ApiProperty({ description: 'The description of the tag', example: 'Tags related to technology and gadgets' })

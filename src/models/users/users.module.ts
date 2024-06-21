@@ -7,6 +7,7 @@ import { UsersService } from '@/models/users/users.service';
 import { MailsService } from '@/providers/mails/mails.service';
 import { User, UserSchema } from '@/models/users/schemas/user.schema';
 import { CloudinaryModule } from '@/providers/cloudinary/cloudinary.module';
+import { CacheManagerModule } from '@/providers/cache/redis/cache.module';
 
 @Module({
      imports: [
@@ -14,6 +15,7 @@ import { CloudinaryModule } from '@/providers/cloudinary/cloudinary.module';
                { name: User.name, schema: UserSchema },
           ]),
 
+          CacheManagerModule,
           CloudinaryModule,
      ],
 

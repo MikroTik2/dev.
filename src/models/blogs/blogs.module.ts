@@ -10,6 +10,7 @@ import { CloudinaryModule } from '@/providers/cloudinary/cloudinary.module';
 import { UsersModule } from '@/models/users/users.module';
 import { User, UserSchema } from '@/models/users/schemas/user.schema';
 import { Tag, TagSchema } from '@/models/tags/schemas/tag.schema';
+import { CacheManagerModule } from '@/providers/cache/redis/cache.module';
 
 @Module({
      imports: [
@@ -20,6 +21,7 @@ import { Tag, TagSchema } from '@/models/tags/schemas/tag.schema';
           ]),
 
           CloudinaryModule,
+          CacheManagerModule,
           UsersModule,
      ],
 

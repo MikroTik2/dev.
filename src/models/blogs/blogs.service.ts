@@ -11,6 +11,7 @@ import { UpdateBlogDto } from "@/models/blogs/dto/update-blog.dto";
 
 import { CloudinaryService } from "@/providers/cloudinary/cloudinary.service";
 import { IPagination } from "@/common/interfaces/pagination.interface";
+import { CacheService } from '@/providers/cache/redis/cache.service';
 
 @Injectable()
 export class BlogsService {
@@ -20,7 +21,11 @@ export class BlogsService {
                         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
                         @InjectModel(Tag.name) private readonly tagModel: Model<TagDocument>,
                         private readonly cloudinaryService: CloudinaryService,
+                        private readonly cacheService: CacheService,
             ) {};
+
+            private blogs;
+            private blogs_search;
 
             async create(id: string, data: CreateBlogDto): Promise<Blog> {
 
@@ -37,11 +42,13 @@ export class BlogsService {
                                 await this.tagModel.findOneAndUpdate({ title: tag }, {
                                     $inc: { posts: 1 },
                                 }, { new: true })
-                                console.log('not create')
                             } else {
                                 await this.tagModel.create({ title: tag });
                             };
                         };
+
+                        await this.cacheService.del(this.blogs);
+                        await this.cacheService.del(this.blogs_search);
 
                         return blog;
             };
@@ -57,39 +64,73 @@ export class BlogsService {
                         query = query.sort({ [s.field]: sort });
                     });
                 }
-            
-                return query.exec();
+                
+                this.blogs = `blogs_${JSON.stringify(pagination)}`;
+                const cachedResult = await this.cacheService.get(this.blogs);
+
+                if (cachedResult) {
+                    return cachedResult;
+                } else {
+                    const result = await query.exec();
+                    await this.cacheService.set(this.blogs, result);
+                    return result;
+                };
             };
 
             async findOne(table: string, value: string): Promise<Blog> {
-                        const blog = await this.blogModel.findOne({ [table]: value }).lean();
-                        if (!blog) throw new NotFoundException(`User with value: ${value} not found`);
-              
-                        return blog;     
+                const cachedData = await this.cacheService.get(value.toString());
+                if (cachedData) return cachedData;
+
+                const blog = await this.blogModel.findOne({ [table]: value }).lean();
+                if (!blog) throw new NotFoundException(`Blog with value: ${value} not found`);
+        
+                await this.cacheService.set(value.toString(), blog);  
+
+                return blog;     
             };
 
             async findById(id: string): Promise<Blog> {
-                        const blog = await this.blogModel.findById(id).lean();
-                        if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
+                const cachedData = await this.cacheService.get(id.toString());
+                if (cachedData) return cachedData;
 
-                        return blog;
+                const blog = await this.blogModel.findById(id).lean();
+                if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
+                
+                await this.cacheService.set(id.toString(), blog);  
+
+                return blog;
             };
 
             async findBlogsByTag(tag: string): Promise<Blog[]> {
-                        const blog = await this.blogModel.find({ tags: tag }).lean();
-                        if (!blog) throw new NotFoundException(`Blog tag: ${tag} not found`);
+                const cachedData = await this.cacheService.get(tag.toString());
+                if (cachedData) return cachedData;
 
-                        return blog;
+                const blog = await this.blogModel.find({ tags: tag }).lean();
+                if (!blog) throw new NotFoundException(`Blog tag: ${tag} not found`);
+
+                await this.cacheService.set(tag.toString(), blog);
+
+                return blog;
             };
 
             async findBlogsByCategory(category: string): Promise<Blog[]> {
-                        const blog = await this.blogModel.find({ categories: category }).lean();
-                        if (!blog) throw new NotFoundException(`Blog category: ${category} not found`);
+                const cachedData = await this.cacheService.get(category.toString());
+                if (cachedData) return cachedData;
 
-                        return blog;
+                const blog = await this.blogModel.find({ categories: category }).lean();
+                if (!blog) throw new NotFoundException(`Blog category: ${category} not found`);
+
+                await this.cacheService.set(category.toString(), blog);
+
+                return blog;
             };
 
             async searchBlogs(query: string): Promise<Blog[]> {
+
+                        this.blogs_search = `blogs_search_${query}`;
+                        const cachedData = await this.cacheService.get(this.blogs_search.toString());
+                        if (cachedData) return cachedData;
+
                         const blogs = await this.blogModel.find({
                                     $or: [
                                                 { title:      { $regex: query, $options: 'i' } },
@@ -102,6 +143,8 @@ export class BlogsService {
                         if (!blogs || blogs.length === 0) {
                                     throw new NotFoundException('Blogs not found');
                         };
+
+                        await this.cacheService.set(this.blogs_search.toString(), blogs);  
 
                         return blogs;
             };
@@ -126,6 +169,8 @@ export class BlogsService {
                                                 $pull: { dislikes: user_id },
                                     };
                         }
+
+                        await this.cacheService.reset();
                     
                         const updatedBlog = await this.blogModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
                         return updatedBlog;
@@ -151,6 +196,8 @@ export class BlogsService {
                                                 $pull: { likes: user_id },
                                     };
                         };
+
+                        await this.cacheService.reset();
                     
                         const updatedBlog = await this.blogModel.findByIdAndUpdate(blog_id, updateOperations, { new: true });
                         return updatedBlog;
@@ -175,6 +222,8 @@ export class BlogsService {
                                                 $push: { save_blogs: blog_id },
                                     };
                         };
+
+                        await this.cacheService.reset();
                         
                         const updatedBlog = await this.userModel.findByIdAndUpdate(user._id, updateOperations, {  new: true});
                         return updatedBlog;
@@ -187,6 +236,8 @@ export class BlogsService {
                         }, { new: true }).lean();
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
 
+                        await this.cacheService.reset();
+
                         return blog;
             };
 
@@ -195,6 +246,7 @@ export class BlogsService {
                         if (!blog) throw new NotFoundException(`Blog id: ${id} not found`);
 
                         this.cloudinaryService.deleteBlogImage(blog.images.public_id)
+                        await this.cacheService.reset();
 
                         return blog;
             };
